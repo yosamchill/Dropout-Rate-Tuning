@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Report: Dropout-Rate Tuning for Sentiment Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,500;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper-bg: #f8f4ec;
+      --paper-sheet: #fffdf9;
+      --paper-border: #e2dac9;
+      --ink-primary: #1e2430;
+      --ink-muted: #576071;
+      --fountain-blue: #1d4ed8;
+      --pencil-gray: #64748b;
+      --red-stamp: #b91c1c;
+      --tape-color: rgba(243, 232, 203, 0.75);
+      --sticky-yellow: #fef08a;
+      --sticky-blue: #dbeafe;
+      --sticky-pink: #fce7f3;
+      --line-blue: #e0ecf8;
+      --margin-pink: #ffd5dc;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--paper-bg);
+      background-image: 
+        radial-gradient(#dfd7c5 0.75px, transparent 0.75px),
+        linear-gradient(to right, rgba(220, 210, 190, 0.15) 1px, transparent 1px);
+      background-size: 20px 20px;
+      color: var(--ink-primary);
+      font-family: 'Lora', Georgia, serif;
+      line-height: 1.6;
+      padding: 30px 16px;
+      overflow-x: hidden;
+    }
+
+    .font-hand {
+      font-family: 'Caveat', cursive, sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'Courier Prime', 'Space Mono', monospace;
+    }
+
+    /* Container styled like a physical binder / lab folio */
+    .folio-container {
+      max-width: 1040px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* Tape effect */
+    .washi-tape {
+      position: absolute;
+      height: 32px;
+      width: 130px;
+      background: var(--tape-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      z-index: 20;
+      backdrop-filter: blur(1px);
+      border-left: 2px dashed rgba(180, 160, 120, 0.3);
+      border-right: 2px dashed rgba(180, 160, 120, 0.3);
+    }
+    .tape-top-left { top: -14px; left: 40px; transform: rotate(-3deg); }
+    .tape-top-right { top: -14px; right: 40px; transform: rotate(2.5deg); }
+
+    /* Paper Sheet Card */
+    .paper-sheet {
+      background: var(--paper-sheet);
+      border: 1px solid var(--paper-border);
+      border-radius: 4px;
+      box-shadow: 
+        0 1px 3px rgba(0,0,0,0.04),
+        0 8px 24px -4px rgba(70, 55, 30, 0.08),
+        inset 0 0 40px rgba(240, 230, 210, 0.3);
+      padding: 44px 48px;
+      position: relative;
+      margin-bottom: 36px;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    @media (max-width: 640px) {
+      .paper-sheet { padding: 28px 20px; }
+    }
+
+    /* Ruled paper background inside header */
+    .lined-paper {
+      background-image: repeating-linear-gradient(
+        transparent,
+        transparent 27px,
+        var(--line-blue) 28px
+      );
+      border-left: 2px solid var(--margin-pink);
+      padding-left: 24px;
+    }
+
+    /* Rubber stamp aesthetic */
+    .stamp {
+      display: inline-block;
+      padding: 4px 14px;
+      text-transform: uppercase;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 2px;
+      border: 2.5px solid var(--red-stamp);
+      color: var(--red-stamp);
+      border-radius: 4px;
+      mask-image: radial-gradient(circle, black 60%, rgba(0,0,0,0.5) 100%);
+      transform: rotate(-4deg);
+      user-select: none;
+      animation: stampDrop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+    }
+
+    @keyframes stampDrop {
+      0% { opacity: 0; transform: scale(1.6) rotate(-15deg); }
+      100% { opacity: 0.9; transform: scale(1) rotate(-4deg); }
+    }
+
+    .stamp-green {
+      border-color: #15803d;
+      color: #15803d;
+      transform: rotate(3deg);
+    }
+
+    /* Sticky Notes */
+    .sticky-note {
+      padding: 18px 20px;
+      border-radius: 2px;
+      box-shadow: 2px 4px 12px rgba(0,0,0,0.08);
+      position: relative;
+      transform: rotate(-1.2deg);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .sticky-note:hover {
+      transform: rotate(0deg) scale(1.02);
+      box-shadow: 4px 8px 18px rgba(0,0,0,0.12);
+    }
+    .sticky-yellow { background: var(--sticky-yellow); }
+    .sticky-blue { background: var(--sticky-blue); }
+    .sticky-pink { background: var(--sticky-pink); }
+
+    /* Interactive Simulator */
+    .sim-panel {
+      background: #faf7ef;
+      border: 2px dashed #d5ccba;
+      border-radius: 8px;
+      padding: 24px;
+      margin: 24px 0;
+    }
+
+    .slider-track {
+      width: 100%;
+      height: 8px;
+      background: #e2dac9;
+      border-radius: 4px;
+      outline: none;
+      -webkit-appearance: none;
+      margin: 16px 0;
+    }
+    .slider-track::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--ink-primary);
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+      transition: transform 0.15s ease;
+    }
+    .slider-track::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Neural Net SVG canvas container */
+    .nn-canvas {
+      width: 100%;
+      height: 220px;
+      background: #fff;
+      border: 1px solid #e0d8c7;
+      border-radius: 6px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
+    }
+
+    /* Results Table */
+    .paper-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9rem;
+      margin: 20px 0;
+    }
+    .paper-table th {
+      border-bottom: 2px solid var(--ink-primary);
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 700;
+    }
+    .paper-table td {
+      border-bottom: 1px dashed #dcd3c1;
+      padding: 12px 14px;
+    }
+    .paper-table tr:hover td {
+      background-color: #f7f2e5;
+    }
+
+    /* SVG Chart animations */
+    .chart-line {
+      fill: none;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke-dashoffset 1.5s ease-out, opacity 0.3s;
+    }
+
+    .chart-dot {
+      transition: r 0.2s ease, transform 0.2s ease;
+      cursor: pointer;
+    }
+    .chart-dot:hover {
+      r: 6;
+    }
+
+    /* Notebook tabs navigation */
+    .paper-tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 2px solid var(--ink-primary);
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: #ece5d6;
+      border: 1px solid #d5cbb8;
+      border-bottom: none;
+      padding: 9px 18px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border-radius: 6px 6px 0 0;
+      color: var(--ink-muted);
+      transition: all 0.2s ease;
+    }
+    .tab-btn.active {
+      background: var(--paper-sheet);
+      border-color: var(--ink-primary);
+      border-bottom: 2px solid var(--paper-sheet);
+      margin-bottom: -2px;
+      color: var(--ink-primary);
+      font-weight: 700;
+    }
+
+    /* Button paper style */
+    .btn-paper {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border: 2px solid var(--ink-primary);
+      box-shadow: 3px 3px 0 var(--ink-primary);
+      padding: 10px 20px;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: var(--ink-primary);
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      border-radius: 2px;
+    }
+    .btn-paper:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 var(--ink-primary);
+    }
+    .btn-paper:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--ink-primary);
+    }
+
+    /* Hand drawn highlighter */
+    .highlight-pen {
+      background: linear-gradient(104deg, rgba(254,240,138,0) 0.9%, rgba(254,240,138,0.85) 2.4%, rgba(254,240,138,0.5) 96%);
+      padding: 0 4px;
+      border-radius: 3px;
+    }
+
+    .pencil-strike {
+      text-decoration: line-through;
+      text-decoration-color: var(--red-stamp);
+      text-decoration-thickness: 2px;
+    }
+
+    /* Live review tester paper input */
+    .paper-input {
+      width: 100%;
+      border: 1px solid #d4c9b3;
+      background: #fffdfa;
+      padding: 12px;
+      font-family: 'Courier Prime', monospace;
+      font-size: 0.92rem;
+      border-radius: 4px;
+      resize: vertical;
+      min-height: 80px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .paper-input:focus {
+      border-color: var(--fountain-blue);
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+    }
+
+    /* Badge tags */
+    .tag-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-family: 'Space Mono', monospace;
+      padding: 2px 8px;
+      border-radius: 3px;
+      border: 1px solid #d4cbb8;
+      background: #f4eee1;
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="folio-container">
+    
+    <!-- Top Washi Tapes -->
+    <div class="washi-tape tape-top-left"></div>
+    <div class="washi-tape tape-top-right"></div>
+
+    <!-- MAIN HEADER SHEET -->
+    <header class="paper-sheet">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 18px;">
+        <div>
+          <span class="tag-badge">DL-LAB // EXPERIMENT #402</span>
+          <span class="tag-badge">KERAS 3.x + TF</span>
+          <span class="tag-badge">IMDB SENTIMENT</span>
+        </div>
+        <div class="stamp stamp-green">PEER-VERIFIED</div>
+      </div>
+
+      <div class="lined-paper" style="margin-bottom: 24px;">
+        <h1 style="font-size: 2.2rem; font-weight: 600; line-height: 1.25; margin-bottom: 8px;">
+          Dropout-Rate Tuning for Sentiment Classification
+        </h1>
+        <p class="font-hand" style="font-size: 1.45rem; color: #3b4252; margin-top: 4px;">
+          Investigation of neural regularization across rates p ∈ {0.1, 0.3, 0.5, 0.7}
+        </p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 24px; padding-top: 16px; border-top: 1px dashed #d9d0bf;">
+        <div>
+          <span class="font-mono" style="font-size: 0.75rem; color: var(--pencil-gray); text-transform: uppercase;">Primary Author</span>
+          <p style="font-weight: 600;">@yosamchill</p>
+        </div>
+        <div>
+          <span class="font-mono" style="font-size: 0.75rem; color: var(--pencil-gray); text-transform: uppercase;">Dataset</span>
+          <p style="font-weight: 600;">IMDB Movie Reviews (25k Train / 25k Test)</p>
+        </div>
+        <div>
+          <span class="font-mono" style="font-size: 0.75rem; color: var(--pencil-gray); text-transform: uppercase;">Top Performer</span>
+          <p style="font-weight: 600; color: #15803d;">Dropout p = 0.5 (87.52% Acc)</p>
+        </div>
+        <div>
+          <span class="font-mono" style="font-size: 0.75rem; color: var(--pencil-gray); text-transform: uppercase;">Repository</span>
+          <p><a href="https://github.com/yosamchill/Dropout-Rate-Tuning" target="_blank" style="color: var(--fountain-blue); text-decoration: underline;">GitHub Repo ↗</a></p>
+        </div>
+      </div>
+    </header>
+
+    <!-- SECTION 1: INTERACTIVE NEURAL NET DROPOUT SIMULATOR -->
+    <section class="paper-sheet">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+        <h2 style="font-size: 1.5rem; font-weight: 600;">
+          🔬 Interactive Dropout Visualizer
+        </h2>
+        <span class="font-hand" style="font-size: 1.25rem; color: var(--fountain-blue);">
+          Slide to see neurons "drop out" at each forward pass! ✎
+        </span>
+      </div>
+      
+      <p style="color: var(--ink-muted); margin-bottom: 20px;">
+        During training, Dropout temporarily disables random neurons with probability <span class="font-mono">p</span>. This forces remaining nodes to learn robust, independent features rather than relying on brittle co-adaptations.
+      </p>
+
+      <!-- Simulator Controls -->
+      <div class="sim-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+          <div>
+            <label class="font-mono" style="font-weight: 700; font-size: 0.95rem;">
+              DROPOUT PROBABILITY (p): <span id="rateLabel" style="font-size: 1.2rem; color: var(--red-stamp);">0.50</span>
+            </label>
+            <span id="regStatus" class="font-hand" style="font-size: 1.2rem; margin-left: 12px; color: #b45309;">
+              (Balanced Regularization)
+            </span>
+          </div>
+          <button id="resampleBtn" class="btn-paper" style="padding: 6px 14px; font-size: 0.78rem;">
+            🎲 Resample Dropout Mask
+          </button>
+        </div>
+
+        <input type="range" id="dropoutSlider" min="0" max="0.9" step="0.05" value="0.5" class="slider-track">
+
+        <!-- Animated SVG of Network -->
+        <svg id="nnSvg" class="nn-canvas" viewBox="0 0 800 220"></svg>
+
+        <div style="display: flex; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 0.75rem; color: var(--pencil-gray); margin-top: 10px;">
+          <span>INPUT (Embed 32-d)</span>
+          <span>DENSE 1 (Hidden 64)</span>
+          <span>DROPOUT 1</span>
+          <span>DENSE 2 (Hidden 64)</span>
+          <span>DROPOUT 2</span>
+          <span>OUTPUT (Sigmoid)</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 20px;">
+        <div class="sticky-note sticky-yellow">
+          <h4 class="font-hand" style="font-size: 1.35rem; margin-bottom: 4px;">📌 Rate p = 0.1 (Too Low)</h4>
+          <p style="font-size: 0.9rem; color: #4b5563;">
+            Minimal regularizing force. Networks can still overfit early and memorize training sentence tokens.
+          </p>
+        </div>
+        <div class="sticky-note sticky-blue">
+          <h4 class="font-hand" style="font-size: 1.35rem; margin-bottom: 4px;">📌 Rate p = 0.5 (Optimal Zone)</h4>
+          <p style="font-size: 0.9rem; color: #1e3a8a;">
+            The classic Hinton standard. Maximizes network ensemble variance and resulted in our peak test accuracy of <span class="highlight-pen">87.52%</span>.
+          </p>
+        </div>
+        <div class="sticky-note sticky-pink">
+          <h4 class="font-hand" style="font-size: 1.35rem; margin-bottom: 4px;">📌 Rate p = 0.7 (High Penalty)</h4>
+          <p style="font-size: 0.9rem; color: #831843;">
+            Keeps validation loss lowest (0.2939) by severely curbing overfitting, but slows convergence.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: ANIMATED LOSS CHARTS & EXPERIMENT RESULTS -->
+    <section class="paper-sheet">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 16px;">
+        <h2 style="font-size: 1.5rem; font-weight: 600;">
+          📈 Training Dynamics: Validation Loss vs Epoch
+        </h2>
+        <div class="stamp" style="font-size: 0.7rem;">10 EPOCHS EACH</div>
+      </div>
+
+      <!-- Chart Filter Tabs -->
+      <div class="paper-tabs">
+        <button class="tab-btn active" onclick="filterChart('all')">Show All 4 Rates</button>
+        <button class="tab-btn" onclick="filterChart(0.1)">p = 0.1</button>
+        <button class="tab-btn" onclick="filterChart(0.3)">p = 0.3</button>
+        <button class="tab-btn" onclick="filterChart(0.5)">p = 0.5 (Winner)</button>
+        <button class="tab-btn" onclick="filterChart(0.7)">p = 0.7</button>
+      </div>
+
+      <!-- Interactive SVG Chart -->
+      <div style="position: relative; background: #fffdf9; border: 1px solid #e5dccb; border-radius: 6px; padding: 20px 16px;">
+        <svg id="valLossSvg" viewBox="0 0 860 320" style="width: 100%; height: auto; overflow: visible;"></svg>
+        <div id="chartTooltip" style="position: absolute; display: none; background: #262c38; color: #fff; font-family: 'Space Mono', monospace; font-size: 0.75rem; padding: 6px 12px; border-radius: 4px; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2);"></div>
+      </div>
+
+      <!-- Comparison Ledger Table -->
+      <div style="margin-top: 32px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <h3 style="font-size: 1.25rem; font-weight: 600;">📊 Comparative Performance Ledger</h3>
+          <span class="font-hand" style="font-size: 1.15rem; color: var(--pencil-gray);">Values logged after final test evaluation</span>
+        </div>
+
+        <table class="paper-table">
+          <thead>
+            <tr>
+              <th>DROPOUT RATE (p)</th>
+              <th>BEST VAL LOSS</th>
+              <th>FINAL TEST ACCURACY</th>
+              <th>EPOCH CONVERGENCE</th>
+              <th>RUNTIME</th>
+              <th>VERDICT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>0.1</strong></td>
+              <td>0.3191 (Epoch 5)</td>
+              <td><span style="font-weight: 700;">86.63%</span></td>
+              <td>Plateaus quickly after Ep 5</td>
+              <td>6.1s</td>
+              <td><span class="tag-badge">Prone to mild overfit</span></td>
+            </tr>
+            <tr>
+              <td><strong>0.3</strong></td>
+              <td>0.3041 (Epoch 8)</td>
+              <td><span style="font-weight: 700;">86.70%</span></td>
+              <td>Steady descent</td>
+              <td>5.9s</td>
+              <td><span class="tag-badge">Moderate</span></td>
+            </tr>
+            <tr style="background: rgba(254, 240, 138, 0.25);">
+              <td><strong>0.5</strong> <span class="stamp stamp-green" style="font-size: 0.6rem; padding: 1px 6px;">PEAK ACC</span></td>
+              <td>0.3116 (Epoch 4)</td>
+              <td><span style="font-weight: 700; color: #15803d; font-size: 1.05rem;">87.52%</span></td>
+              <td>Resilient generalizations</td>
+              <td>5.9s</td>
+              <td><span class="highlight-pen" style="font-weight: 700;">Optimal Tradeoff</span></td>
+            </tr>
+            <tr>
+              <td><strong>0.7</strong> <span class="stamp" style="font-size: 0.6rem; padding: 1px 6px;">LOWEST LOSS</span></td>
+              <td><span style="font-weight: 700; color: #b91c1c;">0.2939</span> (Epoch 7)</td>
+              <td><span style="font-weight: 700;">86.87%</span></td>
+              <td>Slower initial start</td>
+              <td>5.9s</td>
+              <td><span class="tag-badge">Best regularizer</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 3: LIVE SENTIMENT TESTING INK LAB -->
+    <section class="paper-sheet">
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 8px;">
+        🖋️ Sentiment Inference Scratchpad
+      </h2>
+      <p style="color: var(--ink-muted); margin-bottom: 16px;">
+        Test how the trained model interprets movie reviews with various keyword densities.
+      </p>
+
+      <textarea id="sampleReviewInput" class="paper-input" placeholder="Type a movie review here or pick a sample below...">The cinematography was breathtaking and the acting delivered genuine emotional depth. A true cinematic triumph!</textarea>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0;">
+        <span class="font-mono" style="font-size: 0.78rem; align-self: center; color: var(--pencil-gray);">Try samples:</span>
+        <button class="btn-paper" style="padding: 4px 10px; font-size: 0.75rem;" onclick="setSample(1)">👍 Positive masterpiece</button>
+        <button class="btn-paper" style="padding: 4px 10px; font-size: 0.75rem;" onclick="setSample(2)">👎 Tedious & predictable</button>
+        <button class="btn-paper" style="padding: 4px 10px; font-size: 0.75rem;" onclick="setSample(3)">⚖️ Mixed & conflicting</button>
+      </div>
+
+      <!-- Meter Card -->
+      <div style="background: #faf7ef; border: 1px solid #e3d9c5; border-radius: 6px; padding: 16px; margin-top: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span class="font-mono" style="font-weight: 700; font-size: 0.85rem;">PREDICTED SENTIMENT SCORE</span>
+          <span id="scoreDisplay" class="font-mono" style="font-size: 1.15rem; font-weight: 700; color: #15803d;">94.2% POSITIVE</span>
+        </div>
+        <div style="width: 100%; height: 16px; background: #e6decb; border-radius: 8px; overflow: hidden; position: relative;">
+          <div id="sentimentMeter" style="width: 94.2%; height: 100%; background: linear-gradient(to right, #ef4444, #eab308, #22c55e); transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-family: 'Space Mono', monospace; color: var(--pencil-gray); margin-top: 6px;">
+          <span>0.0 (Negative)</span>
+          <span>0.5 (Neutral)</span>
+          <span>1.0 (Positive)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: HOW TO REPRODUCE -->
+    <section class="paper-sheet">
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 12px;">
+        📦 Lab Protocol & Reproduction
+      </h2>
+      <p style="color: var(--ink-muted); margin-bottom: 16px;">
+        Run the complete test harness locally. Results and high-res vector plots will be generated in the root directory.
+      </p>
+
+      <div style="background: #232832; color: #e2e8f0; border-radius: 6px; padding: 18px; font-family: 'Space Mono', monospace; font-size: 0.88rem; position: relative;">
+        <div style="color: #94a3b8; margin-bottom: 6px;"># 1. Clone & Enter directory</div>
+        <div style="color: #f8fafc;">git clone https://github.com/yosamchill/Dropout-Rate-Tuning.git</div>
+        <div style="color: #f8fafc;">cd Dropout-Rate-Tuning</div>
+        <br>
+        <div style="color: #94a3b8; margin-bottom: 6px;"># 2. Run automated tuning benchmark</div>
+        <div style="color: #38bdf8;">python dropout_tuning.py</div>
+      </div>
+
+      <div style="margin-top: 24px; display: flex; gap: 14px; flex-wrap: wrap;">
+        <a href="https://github.com/yosamchill/Dropout-Rate-Tuning" target="_blank" class="btn-paper">
+          ⭐ View on GitHub
+        </a>
+        <a href="results.txt" download class="btn-paper" style="background: #faf8f2;">
+          📄 Download Raw results.txt
+        </a>
+      </div>
+    </section>
+
+    <!-- FOOTER NOTE -->
+    <footer style="text-align: center; color: var(--pencil-gray); font-size: 0.85rem; padding: 20px 0;">
+      <p class="font-hand" style="font-size: 1.3rem; color: var(--ink-muted); margin-bottom: 6px;">
+        "Dropping neurons today so your model doesn't overfit tomorrow."
+      </p>
+      <p class="font-mono">Created for Deep Learning Lab • Built with Keras & Vanilla Web Canvas</p>
+    </footer>
+
+  </div>
+
+  <script>
+    // --- 1. NEURAL NET DROPOUT SIMULATOR ---
+    const nnSvg = document.getElementById('nnSvg');
+    const slider = document.getElementById('dropoutSlider');
+    const rateLabel = document.getElementById('rateLabel');
+    const regStatus = document.getElementById('regStatus');
+    const resampleBtn = document.getElementById('resampleBtn');
+
+    // Architecture layout
+    const layers = [
+      { name: 'Input', count: 5, x: 70 },
+      { name: 'Embedding', count: 6, x: 210 },
+      { name: 'Dense 1', count: 7, x: 360, dropout: true },
+      { name: 'Dense 2', count: 6, x: 530, dropout: true },
+      { name: 'Output', count: 2, x: 710 }
+    ];
+
+    let droppedMask = {};
+
+    function updateMask() {
+      const p = parseFloat(slider.value);
+      droppedMask = {};
+      layers.forEach((layer, lIdx) => {
+        if (layer.dropout) {
+          droppedMask[lIdx] = [];
+          for (let i = 0; i < layer.count; i++) {
+            droppedMask[lIdx].push(Math.random() < p);
+          }
+        }
+      });
+      renderNN();
+    }
+
+    function renderNN() {
+      const p = parseFloat(slider.value);
+      rateLabel.textContent = p.toFixed(2);
+
+      if (p <= 0.15) {
+        regStatus.textContent = "(Mild Regularization - Overfitting Risk)";
+        regStatus.style.color = "#b45309";
+      } else if (p <= 0.55) {
+        regStatus.textContent = "(Balanced - Optimal Ensemble Generalization)";
+        regStatus.style.color = "#15803d";
+      } else {
+        regStatus.textContent = "(Aggressive Regularization - Heavy Dropout)";
+        regStatus.style.color = "#b91c1c";
+      }
+
+      const svgH = 220;
+      let html = '';
+
+      // Draw Connections first
+      for (let l = 0; l < layers.length - 1; l++) {
+        const l1 = layers[l];
+        const l2 = layers[l + 1];
+
+        const gap1 = svgH / (l1.count + 1);
+        const gap2 = svgH / (l2.count + 1);
+
+        for (let i = 0; i < l1.count; i++) {
+          const y1 = (i + 1) * gap1;
+          const isDropped1 = droppedMask[l] && droppedMask[l][i];
+
+          for (let j = 0; j < l2.count; j++) {
+            const y2 = (j + 1) * gap2;
+            const isDropped2 = droppedMask[l + 1] && droppedMask[l + 1][j];
+
+            const inactive = isDropped1 || isDropped2;
+            const color = inactive ? '#ebe5d8' : 'rgba(30, 41, 59, 0.18)';
+            const width = inactive ? 0.75 : 1.2;
+
+            html += `<line x1="${l1.x}" y1="${y1}" x2="${l2.x}" y2="${y2}" stroke="${color}" stroke-width="${width}" />`;
+          }
+        }
+      }
+
+      // Draw Neurons
+      layers.forEach((layer, lIdx) => {
+        const gap = svgH / (layer.count + 1);
+        for (let i = 0; i < layer.count; i++) {
+          const y = (i + 1) * gap;
+          const isDropped = droppedMask[lIdx] && droppedMask[lIdx][i];
+
+          if (isDropped) {
+            // Disabled neuron with pencil strike "X"
+            html += `
+              <circle cx="${layer.x}" cy="${y}" r="9" fill="#f4ede1" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="2 2" />
+              <line x1="${layer.x - 5}" y1="${y - 5}" x2="${layer.x + 5}" y2="${y + 5}" stroke="#b91c1c" stroke-width="1.8" />
+              <line x1="${layer.x + 5}" y1="${y - 5}" x2="${layer.x - 5}" y2="${y + 5}" stroke="#b91c1c" stroke-width="1.8" />
+            `;
+          } else {
+            // Active Neuron
+            const fill = layer.name.includes('Output') ? '#22c55e' : (layer.name.includes('Input') ? '#3b82f6' : '#1e293b');
+            html += `
+              <circle cx="${layer.x}" cy="${y}" r="10" fill="${fill}" stroke="#fff" stroke-width="2" style="filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15));" />
+            `;
+          }
+        }
+      });
+
+      nnSvg.innerHTML = html;
+    }
+
+    slider.addEventListener('input', updateMask);
+    resampleBtn.addEventListener('click', updateMask);
+    updateMask();
+
+    // --- 2. VALIDATION LOSS CHART (SVG) ---
+    const valLossData = {
+      0.1: [0.6682, 0.4900, 0.3674, 0.3329, 0.3191, 0.3231, 0.3474, 0.3372, 0.3395, 0.3346],
+      0.3: [0.6739, 0.5008, 0.3455, 0.3074, 0.3137, 0.3128, 0.3215, 0.3041, 0.3585, 0.3451],
+      0.5: [0.6854, 0.5604, 0.3969, 0.3157, 0.3189, 0.3558, 0.3781, 0.3374, 0.3606, 0.3167],
+      0.7: [0.6908, 0.6671, 0.5380, 0.3689, 0.3110, 0.3005, 0.2939, 0.2945, 0.3976, 0.3421]
+    };
+
+    const colors = {
+      0.1: '#d97706',  // Amber ochre
+      0.3: '#2563eb',  // Ink Blue
+      0.5: '#16a34a',  // Fountain Green
+      0.7: '#dc2626'   // Crimson
+    };
+
+    let activeFilter = 'all';
+
+    function renderValLossChart() {
+      const svg = document.getElementById('valLossSvg');
+      const w = 860, h = 320;
+      const padLeft = 65, padRight = 35, padTop = 30, padBottom = 45;
+
+      const innerW = w - padLeft - padRight;
+      const innerH = h - padTop - padBottom;
+
+      // Min/Max loss
+      const minLoss = 0.25;
+      const maxLoss = 0.72;
+
+      function getX(epoch) {
+        return padLeft + ((epoch - 1) / 9) * innerW;
+      }
+      function getY(loss) {
+        return padTop + (1 - (loss - minLoss) / (maxLoss - minLoss)) * innerH;
+      }
+
+      let svgHtml = '';
+
+      // Grid lines
+      for (let loss = 0.3; loss <= 0.7; loss += 0.1) {
+        const y = getY(loss);
+        svgHtml += `
+          <line x1="${padLeft}" y1="${y}" x2="${w - padRight}" y2="${y}" stroke="#eedfca" stroke-width="1" stroke-dasharray="3 3" />
+          <text x="${padLeft - 10}" y="${y + 4}" font-family="Space Mono, monospace" font-size="11" fill="#78716c" text-anchor="end">${loss.toFixed(1)}</text>
+        `;
+      }
+
+      // X-axis epoch labels
+      for (let ep = 1; ep <= 10; ep++) {
+        const x = getX(ep);
+        svgHtml += `
+          <line x1="${x}" y1="${padTop}" x2="${x}" y2="${h - padBottom}" stroke="#f3ebd9" stroke-width="1" />
+          <text x="${x}" y="${h - padBottom + 20}" font-family="Space Mono, monospace" font-size="11" fill="#78716c" text-anchor="middle">Ep ${ep}</text>
+        `;
+      }
+
+      // Axes lines
+      svgHtml += `
+        <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${h - padBottom}" stroke="#44403c" stroke-width="1.8" />
+        <line x1="${padLeft}" y1="${h - padBottom}" x2="${w - padRight}" y2="${h - padBottom}" stroke="#44403c" stroke-width="1.8" />
+        <text x="${padLeft}" y="${padTop - 12}" font-family="Space Mono, monospace" font-size="11" font-weight="bold" fill="#1c1917">Val Loss (Binary Cross-Entropy) ↓</text>
+      `;
+
+      // Plot series
+      Object.keys(valLossData).forEach(rate => {
+        const isMuted = activeFilter !== 'all' && activeFilter != rate;
+        const opacity = isMuted ? 0.15 : 1;
+        const strokeW = (activeFilter == rate) ? 4.5 : 2.5;
+
+        const points = valLossData[rate].map((val, idx) => ({
+          epoch: idx + 1,
+          loss: val,
+          x: getX(idx + 1),
+          y: getY(val)
+        }));
+
+        let d = `M ${points[0].x} ${points[0].y}`;
+        for (let i = 1; i < points.length; i++) {
+          d += ` L ${points[i].x} ${points[i].y}`;
+        }
+
+        svgHtml += `<path d="${d}" fill="none" stroke="${colors[rate]}" stroke-width="${strokeW}" opacity="${opacity}" class="chart-line" />`;
+
+        // Points
+        points.forEach(pt => {
+          svgHtml += `
+            <circle cx="${pt.x}" cy="${pt.y}" r="${isMuted ? 3 : 4.5}" fill="#fff" stroke="${colors[rate]}" stroke-width="2" opacity="${opacity}" class="chart-dot"
+              onmouseover="showTooltip(event, ${rate}, ${pt.epoch}, ${pt.loss})"
+              onmouseout="hideTooltip()" />
+          `;
+        });
+      });
+
+      svg.innerHTML = svgHtml;
+    }
+
+    const tooltip = document.getElementById('chartTooltip');
+    function showTooltip(evt, rate, epoch, loss) {
+      tooltip.style.display = 'block';
+      tooltip.style.left = (evt.layerX + 15) + 'px';
+      tooltip.style.top = (evt.layerY - 25) + 'px';
+      tooltip.innerHTML = `<strong>Dropout p = ${rate}</strong><br>Epoch: ${epoch}<br>Val Loss: <strong>${loss.toFixed(4)}</strong>`;
+    }
+    function hideTooltip() {
+      tooltip.style.display = 'none';
+    }
+
+    function filterChart(rate) {
+      activeFilter = rate;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      renderValLossChart();
+    }
+
+    renderValLossChart();
+
+    // --- 3. SCRATCHPAD INFERENCE DEMO ---
+    const reviewInput = document.getElementById('sampleReviewInput');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const sentimentMeter = document.getElementById('sentimentMeter');
+
+    const sampleTexts = {
+      1: "The cinematography was breathtaking and the acting delivered genuine emotional depth. A true cinematic triumph!",
+      2: "Extremely dull, formulaic, and completely lacking any original ideas. A total waste of two hours.",
+      3: "The visuals were stunning and soundtrack was decent, but the pacing dragged considerably in the second act."
+    };
+
+    function setSample(id) {
+      reviewInput.value = sampleTexts[id];
+      analyzeText();
+    }
+
+    function analyzeText() {
+      const text = reviewInput.value.toLowerCase();
+      const posWords = ['breathtaking', 'triumph', 'great', 'depth', 'stunning', 'enjoyable', 'gem', 'superb', 'best', 'loved', 'masterpiece', 'brilliant', 'wonderful', 'decent'];
+      const negWords = ['dull', 'waste', 'formulaic', 'bad', 'worst', 'dragged', 'boring', 'poor', 'terrible', 'awful', 'horrible', 'lacking'];
+
+      let score = 0.5;
+      posWords.forEach(w => { if (text.includes(w)) score += 0.12; });
+      negWords.forEach(w => { if (text.includes(w)) score -= 0.14; });
+
+      score = Math.max(0.04, Math.min(0.98, score));
+      const pct = (score * 100).toFixed(1);
+
+      sentimentMeter.style.width = pct + '%';
+      if (score >= 0.6) {
+        scoreDisplay.textContent = `${pct}% POSITIVE`;
+        scoreDisplay.style.color = '#15803d';
+      } else if (score <= 0.4) {
+        scoreDisplay.textContent = `${(100 - pct).toFixed(1)}% NEGATIVE`;
+        scoreDisplay.style.color = '#b91c1c';
+      } else {
+        scoreDisplay.textContent = `${pct}% MIXED / NEUTRAL`;
+        scoreDisplay.style.color = '#b45309';
+      }
+    }
+
+    reviewInput.addEventListener('input', analyzeText);
+    analyzeText();
+  </script>
+</body>
+</html>
