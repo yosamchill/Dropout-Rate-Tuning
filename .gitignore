@@ -1,0 +1,13 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local Keras cache & downloaded datasets
+.keras/
+
+# Environments & IDE
+.vscode/
+.idea/
+venv/
+.env/
